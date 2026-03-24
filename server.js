@@ -10,7 +10,7 @@
  * API key: stored in api-key.json (excluded from the repository — see .gitignore).
  *          Copy api-key.example.json → api-key.json and fill in your key.
  * Config:  stored in config.json (excluded from the repository — see .gitignore).
- *          Copy config.example.json → config.json and set your hostname.
+ *          Copy config.example.json → config.json and set hostname and port.
  */
 
 const express = require('express');
@@ -18,19 +18,30 @@ const https = require('https');
 const fetch = require('node-fetch');
 const fs = require('fs');
 
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+// Load config files — fail early with a clear message if missing
+function loadJson(path, hint) {
+    try {
+        return JSON.parse(fs.readFileSync(path, 'utf8'));
+    } catch {
+        console.error(`Error: cannot read ${path}. ${hint}`);
+        process.exit(1);
+    }
+}
+
+const { apikey: API_KEY } = loadJson('./api-key.json', 'Copy api-key.example.json → api-key.json and fill in your key.');
+const { hostname: HOSTNAME, port: PORT } = loadJson('./config.json', 'Copy config.example.json → config.json and set your hostname and port.');
+
+const API_BASE_URL = 'https://апи.национальный-каталог.рф/v4';
+
+// Disable TLS validation only for requests to the НКТ API (self-signed cert)
+const tlsAgent = new https.Agent({ rejectUnauthorized: false });
 
 const app = express();
-const port = 3000;
-
-const { apikey: API_KEY } = JSON.parse(fs.readFileSync('./api-key.json', 'utf8'));
-const { hostname: HOSTNAME } = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
-
 const router = express.Router();
 
 app.use(express.json());
 
-app.use((req, res, next) => {
+app.use((_req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     next();
@@ -50,7 +61,7 @@ function cleanupOldTimestamps() {
     windowStartTime = requestTimestamps.length > 0 ? requestTimestamps[0] : Date.now();
 }
 
-function checkRateLimit(req, res, next) {
+function checkRateLimit(_req, res, next) {
     const now = Date.now();
     cleanupOldTimestamps();
 
@@ -68,7 +79,7 @@ function checkRateLimit(req, res, next) {
 }
 
 function getRateLimitHeaders() {
-    cleanupOldTimestamps();
+    // Note: cleanup is expected to have already been called by checkRateLimit
     const remaining = MAX_REQUESTS - requestTimestamps.length;
     const timeUntilReset = requestTimestamps.length > 0
         ? Math.ceil((requestTimestamps[0] + TIME_WINDOW - Date.now()) / 1000)
@@ -81,17 +92,10 @@ function getRateLimitHeaders() {
     };
 }
 
-// POST /proxy — product info by GTIN
-router.post('/proxy', checkRateLimit, async (req, res) => {
-    const apiUrl = `https://апи.национальный-каталог.рф/v4/rd-info-by-gtin?apikey=${API_KEY}`;
-    console.log('POST /proxy', apiUrl, req.body);
-
+// Shared fetch helper — executes request and forwards response or error to client
+async function callApi(url, fetchOptions, res) {
     try {
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Accept-Charset': 'utf-8', 'Content-Type': 'application/json' },
-            body: JSON.stringify(req.body),
-        });
+        const response = await fetch(url, { agent: tlsAgent, ...fetchOptions });
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -105,10 +109,21 @@ router.post('/proxy', checkRateLimit, async (req, res) => {
         console.error('Request failed:', error);
         res.status(500).json({ error: 'Internal proxy error', details: error.message });
     }
+}
+
+// POST /proxy — product info by GTIN
+router.post('/proxy', checkRateLimit, (req, res) => {
+    const url = `${API_BASE_URL}/rd-info-by-gtin?apikey=${API_KEY}`;
+    console.log('POST /proxy', req.body);
+    callApi(url, {
+        method: 'POST',
+        headers: { 'Accept-Charset': 'utf-8', 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body),
+    }, res);
 });
 
 // GET /proxy-product-list — paginated product list with optional date range
-router.get('/proxy-product-list', checkRateLimit, async (req, res) => {
+router.get('/proxy-product-list', checkRateLimit, (req, res) => {
     const { from_date, to_date, limit, offset } = req.query;
 
     const datePattern = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
@@ -139,26 +154,11 @@ router.get('/proxy-product-list', checkRateLimit, async (req, res) => {
     if (limit)     params.append('limit', limit);
     if (offset !== undefined) params.append('offset', offset); // offset=0 is valid
 
-    const apiUrl = `https://апи.национальный-каталог.рф/v4/product-list?${params.toString()}`;
-    console.log('GET /proxy-product-list', apiUrl);
-
-    try {
-        const response = await fetch(apiUrl, {
-            headers: { 'Accept-Charset': 'utf-8', 'Content-Type': 'application/json' },
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('API error:', response.status, errorText);
-            return res.status(response.status).json({ error: errorText });
-        }
-
-        const data = await response.json();
-        res.set(getRateLimitHeaders()).json(data);
-    } catch (error) {
-        console.error('Request failed:', error);
-        res.status(500).json({ error: 'Internal proxy error', details: error.message });
-    }
+    const url = `${API_BASE_URL}/product-list?${params.toString()}`;
+    console.log('GET /proxy-product-list', url);
+    callApi(url, {
+        headers: { 'Accept-Charset': 'utf-8', 'Content-Type': 'application/json' },
+    }, res);
 });
 
 // GET /rate-limit-status — current rate limit counters
@@ -183,6 +183,6 @@ router.get('/rate-limit-status', (req, res) => {
 
 app.use('/nat-cat-1', router);
 
-app.listen(port, () => {
-    console.log(`Proxy server running at http://${HOSTNAME}:${port}/nat-cat-1/`);
+app.listen(PORT, () => {
+    console.log(`Proxy server running at http://${HOSTNAME}:${PORT}/nat-cat-1/`);
 });

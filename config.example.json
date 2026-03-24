@@ -1,3 +1,4 @@
 {
-  "hostname": "YOUR_SERVER_HOSTNAME"
+  "hostname": "YOUR_SERVER_HOSTNAME",
+  "port": 3000
 }

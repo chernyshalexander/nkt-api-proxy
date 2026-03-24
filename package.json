@@ -1,0 +1,13 @@
+{
+  "name": "nkt-api-proxy",
+  "version": "1.0.0",
+  "description": "Proxy server for the National Goods Catalog API (НКТ)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.22.1",
+    "node-fetch": "^2.7.0"
+  }
+}

@@ -1,9 +1,14 @@
 ﻿const express = require('express');
 const https = require('https');
 const fetch = require('node-fetch');
+const fs = require('fs');
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 const app = express();
 const port = 3000;
+
+// API-ключ хранится в файле api-key.json (не включён в репозиторий — см. .gitignore).
+// Скопируйте api-key.example.json → api-key.json и укажите свой ключ.
+const { apikey: API_KEY } = JSON.parse(fs.readFileSync('./api-key.json', 'utf8'));
 
 // Создаем роутер для префикса /nat-cat-1/
 const router = express.Router();
@@ -72,7 +77,7 @@ function checkRateLimit(req, res, next) {
 
 // Прокси-маршрут (теперь использует именованное middleware)
 router.post('/proxy', checkRateLimit, async (req, res) => {
-    const apiUrl = 'https://апи.национальный-каталог.рф/v4/rd-info-by-gtin?apikey=842v3mtua2hlaa1k';
+    const apiUrl = `https://апи.национальный-каталог.рф/v4/rd-info-by-gtin?apikey=${API_KEY}`;
     console.log('Отправка запроса к API НКТ:', apiUrl);
     console.log('Тело запроса:', req.body);
 
@@ -117,9 +122,6 @@ router.post('/proxy', checkRateLimit, async (req, res) => {
 });
 
 // --- Новый маршрут для product-list ---
-// Удаляем жестко закодированные параметры
-const API_KEY = '842v3mtua2hlaa1k'; // Используем тот же ключ, что и в оригинальном proxy
-
 // Маршрут для нового метода product-list
 // Используем GET, так как API документирует его как GET запрос
 // Параметры будут передаваться в URL-строке запроса

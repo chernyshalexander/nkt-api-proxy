@@ -1,0 +1,517 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <script src="xlsx.full.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Запросы к API Национального каталога товаров</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #1976d2;
+            --primary-dark: #1565c0;
+            --primary-light: #42a5f5;
+            --secondary-color: #dc004e;
+            --surface-color: #ffffff;
+            --background-color: #f5f5f5;
+            --error-color: #d32f2f;
+            --warning-color: #f57c00;
+            --success-color: #388e3c;
+            --text-primary: #212121;
+            --text-secondary: #757575;
+            --text-disabled: #9e9e9e;
+            --divider-color: #e0e0e0;
+            --shadow-1: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            --shadow-2: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+            --shadow-3: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+			padding: 20px;
+        }
+
+        .card {
+            background: var(--surface-color);
+            border-radius: 8px;
+            box-shadow: var(--shadow-1);
+            margin-bottom: 24px;
+            overflow: hidden;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--divider-color);
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+        }
+
+		.card-header h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 500;
+        }
+
+        .card-content {
+            padding: 24px;
+        }
+		.card-header .subtitle {
+            color: rgba(255, 255, 255, 0.9) !important;
+            font-weight: 300;
+            margin-bottom: 0;
+        }
+
+        .card-actions {
+            padding: 16px;
+            border-top: 1px solid var(--divider);
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .btn i {
+            margin-right: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-primary:disabled {
+            background-color: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #1b5e20;
+        }
+
+        .btn-error {
+            background-color: var(--error-color);
+            color: white;
+        }
+
+        .btn-error:hover {
+            background-color: #b71c1c;
+        }
+
+        .status-card {
+            padding: 16px;
+            border-radius: var(--border-radius);
+            margin-bottom: 16px;
+        }
+
+        .status-info {
+            background-color: #e3f2fd;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .status-success {
+            background-color: #e8f5e9;
+            border-left: 4px solid var(--success-color);
+        }
+
+        .status-error {
+            background-color: #ffebee;
+            border-left: 4px solid var(--error-color);
+        }
+
+        .status-warning {
+            background-color: #fff3e0;
+            border-left: 4px solid var(--warning-color);
+        }
+
+        .d-flex {
+            display: flex;
+        }
+
+        .align-center {
+            align-items: center;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .mt-8 {
+            margin-top: 8px;
+        }
+
+        .mt-16 {
+            margin-top: 16px;
+        }
+
+        .mb-8 {
+            margin-bottom: 8px;
+        }
+
+        .mb-16 {
+            margin-bottom: 16px;
+        }
+
+        .gap-16 {
+            gap: 16px;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-secondary {
+            color: var(--text-secondary);
+        }
+
+        .subtitle {
+            margin-top: 8px;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--divider);
+            border-radius: var(--border-radius);
+            font-family: 'Roboto', sans-serif;
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .input-field.error {
+            border-color: var(--error-color);
+        }
+
+        textarea.input-field {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid var(--divider);
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f0f0f0;
+            font-weight: 500;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .compact-row {
+            font-size: 0.85rem;
+        }
+
+        .compact-cell {
+            padding: 4px 8px;
+        }
+
+        /* Specific column widths for the results table (from gtin-search.html) */
+        th:nth-child(1), td:nth-child(1) { width: 100px; } /* GTIN */
+        th:nth-child(2), td:nth-child(2) { width: 80px; }  /* attr_id */
+        th:nth-child(3), td:nth-child(3) { width: 120px; } /* number */
+        th:nth-child(4), td:nth-child(4) { width: 100px; } /* status */
+        th:nth-child(5), td:nth-child(5) { width: 100px; } /* active */
+        th:nth-child(6), td:nth-child(6) { width: 100px; } /* date */
+        th:nth-child(7), td:nth-child(7) { width: 100px; } /* doc_type */
+        th:nth-child(8), td:nth-child(8) { width: 150px; } /* reg_number */
+        th:nth-child(9), td:nth-child(9) { width: 150px; } /* reg_date */
+        th:nth-child(10), td:nth-child(10) { width: 110px; } /* org_name */
+        th:nth-child(11), td:nth-child(11) { width: 120px; } /* org_inn */
+        th:nth-child(12), td:nth-child(12) { width: 100px; } /* errors */
+
+        .empty-state {
+            text-align: center;
+            padding: 32px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+        }
+
+        .counter {
+            background-color: var(--success-color);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 8px;
+            font-size: 0.8rem;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin: 24px 0;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success-color), #4caf50);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(90deg, var(--warning-color), #ffb300);
+        }
+
+        .progress-fill.error {
+            background: linear-gradient(90deg, var(--error-color), #f44336);
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+
+        .countdown {
+            font-weight: 500;
+            margin-left: 8px;
+            color: var(--primary-color);
+        }
+
+        .text-hint {
+            color: var(--text-hint);
+        }
+
+        .notification {
+            padding: 12px 16px;
+            margin-top: 16px;
+            border-radius: var(--border-radius);
+            display: none;
+        }
+
+        .notification.show {
+            display: block;
+        }
+
+        .notification-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .notification-error {
+            background-color: var(--error-color);
+            color: white;
+        }
+
+        /* Стили для списка навигации */
+        .nav-list {
+            list-style-type: decimal; /* Нумерованный список */
+            padding-left: 20px; /* Отступ для номеров */
+        }
+
+        .nav-list li {
+            margin-bottom: 16px; /* Расстояние между пунктами, увеличено до 16px */
+        }
+
+        .nav-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1rem; /* Установлен размер шрифта как в gtin-search.html */
+        }
+
+        .nav-link:hover {
+            text-decoration: underline;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Card -->
+        <div class="card">
+            <div class="card-header">
+                <h2>Запросы к API Национального каталога товаров</h2>
+            </div>
+        </div>
+<!-- Limit Info Card -->
+        <div class="card">
+            <div class="card-content">
+                <div id="limitInfo" class="status-info status-card">
+                    <div class="d-flex align-center justify-between">
+                        <span>Загрузка информации о лимитах...</span>
+                        <i class="material-icons">info</i>
+                    </div>
+                </div>
+                <!-- Pause Info -->
+                <div id="pauseInfo" class="status-error status-card" style="display: none;">
+                    <div class="d-flex align-center justify-between">
+                        <div>
+                            <strong>Лимит запросов исчерпан!</strong><br>
+                            Следующий запрос возможен через: <span id="pauseTime">0</span> секунд
+                        </div>
+                        <i class="material-icons">timer_off</i>
+                    </div>
+                </div>
+             </div>
+        </div>
+        <!-- Services List Card -->
+        <div class="card">
+		    <div class="card-header">
+                <h1>Доступные сервисы</h1>
+               
+            </div>
+            <div class="card-content">
+
+                <ul class="nav-list">
+                    <li>
+                        <a href="gtin-search.html" class="nav-link">Получение информации о разрешительных документах по GTIN</a>
+                    </li>
+                    <li>
+                        <a href="product-list.html" class="nav-link">Получение списка собственных карточек с краткой информацией по ним</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+
+
+    </div>
+
+    <script>
+        // Функция для обновления информации о лимите
+        async function updateLimitInfo() {
+            try {
+                const response = await fetch('/nat-cat-1/rate-limit-status');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                console.log('Получен статус лимита:', data);
+
+                const limitInfoElement = document.getElementById('limitInfo');
+                const pauseInfoElement = document.getElementById('pauseInfo');
+                const pauseTimeElement = document.getElementById('pauseTime');
+
+                if (data.isPaused) {
+                    pauseInfoElement.style.display = 'block';
+                    pauseTimeElement.textContent = data.timeUntilReset;
+                    limitInfoElement.innerHTML = `
+                        <div class="d-flex align-center justify-between">
+                            <span>Лимит исчерпан: 0 из ${data.limit} (сброс через ${data.timeUntilReset} сек)</span>
+                            <i class="material-icons">block</i>
+                        </div>
+                    `;
+                } else {
+                    pauseInfoElement.style.display = 'none';
+                    limitInfoElement.innerHTML = `
+                        <div class="d-flex align-center justify-between">
+                            <span>Использовано: ${data.used} из ${data.limit} запросов</span>
+                            <i class="material-icons">info</i>
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${(data.used / data.limit) * 100}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Ошибка при получении статуса лимита:', error);
+                document.getElementById('limitInfo').innerHTML = `
+                    <div class="d-flex align-center justify-between">
+                        <span>Ошибка загрузки информации о лимитах</span>
+                        <i class="material-icons">error</i>
+                    </div>
+                `;
+            }
+        }
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            updateLimitInfo();
+            // Обновление каждые 5 секунд
+            setInterval(updateLimitInfo, 5000);
+        });
+
+    </script>
+</body>
+</html>

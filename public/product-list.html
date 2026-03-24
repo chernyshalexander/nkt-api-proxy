@@ -1,0 +1,1142 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <script src="xlsx.full.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Получение списка собственных карточек с краткой информацией по ним</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #1976d2;
+            --primary-dark: #1565c0;
+            --primary-light: #42a5f5;
+            --secondary-color: #dc004e;
+            --surface-color: #ffffff;
+            --background-color: #f5f5f5;
+            --error-color: #d32f2f;
+            --success-color: #2e7d32;
+            --warning-color: #f57c00;
+            --info-color: #1975d1;
+            --text-primary: rgba(0, 0, 0, 0.87);
+            --text-secondary: rgba(0, 0, 0, 0.54);
+            --text-hint: rgba(0, 0, 0, 0.38);
+            --divider: rgba(0, 0, 0, 0.12);
+            --border-radius: 4px;
+            --card-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--background-color);
+            padding: 16px;
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background-color: var(--surface-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 16px;
+        }
+
+        .card-header h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 500;
+        }
+
+        .card-content {
+            padding: 16px;
+        }
+
+        .card-actions {
+            padding: 16px;
+            border-top: 1px solid var(--divider);
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .btn i {
+            margin-right: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-primary:disabled {
+            background-color: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #1b5e20;
+        }
+
+        .btn-error {
+            background-color: var(--error-color);
+            color: white;
+        }
+
+        .btn-error:hover {
+            background-color: #b71c1c;
+        }
+
+		.status-card {
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            border-left: 4px solid;
+        }
+
+        .status-success {
+            background-color: #e8f5e8;
+            border-left-color: var(--success-color);
+            color: var(--success-color);
+        }
+
+        .status-warning {
+            background-color: #fff3e0;
+            border-left-color: var(--warning-color);
+            color: var(--warning-color);
+        }
+
+        .status-error {
+            background-color: #ffebee;
+            border-left-color: var(--error-color);
+            color: var(--error-color);
+        }
+
+        .status-info {
+            background-color: #e3f2fd;
+            border-left-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .d-flex {
+            display: flex;
+        }
+
+        .align-center {
+            align-items: center;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .mt-8 {
+            margin-top: 8px;
+        }
+
+        .mt-16 {
+            margin-top: 16px;
+        }
+
+        .mb-8 {
+            margin-bottom: 8px;
+        }
+
+        .mb-16 {
+            margin-bottom: 16px;
+        }
+
+        .gap-16 {
+            gap: 16px;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-secondary {
+            color: var(--text-secondary);
+        }
+
+        .subtitle {
+            margin-top: 8px;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--divider);
+            border-radius: var(--border-radius);
+            font-family: 'Roboto', sans-serif;
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .input-field.error {
+            border-color: var(--error-color);
+        }
+
+        textarea.input-field {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid var(--divider);
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f0f0f0;
+            font-weight: 500;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .compact-row {
+            font-size: 0.85rem;
+        }
+
+        .compact-cell {
+            padding: 4px 8px;
+        }
+
+        /* Specific column widths for the results table */
+        th:nth-child(1), td:nth-child(1) { width: 10%; } /* good_id */
+        th:nth-child(2), td:nth-child(2) { width: 15%; } /* gtin */
+        th:nth-child(3), td:nth-child(3) { width: 30%; } /* good_name */
+        th:nth-child(4), td:nth-child(4) { width: 15%; } /* brand_name */
+        th:nth-child(5), td:nth-child(5) { width: 15%; } /* good_status */
+        th:nth-child(6), td:nth-child(6) { width: 15%; } /* updated_date */
+
+
+        .empty-state {
+            text-align: center;
+            padding: 32px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+        }
+
+        .counter {
+            background-color: var(--success-color);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 8px;
+            font-size: 0.8rem;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin: 24px 0;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success-color), #4caf50);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(90deg, var(--warning-color), #ffb300);
+        }
+
+        .progress-fill.error {
+            background: linear-gradient(90deg, var(--error-color), #f44336);
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .countdown {
+            font-weight: 500;
+            margin-left: 8px;
+            color: var(--primary-color);
+        }
+
+        .text-hint {
+            color: var(--text-hint);
+        }
+
+        .notification {
+            padding: 12px 16px;
+            margin-top: 16px;
+            border-radius: var(--border-radius);
+            display: none;
+        }
+
+        .notification.show {
+            display: block;
+        }
+
+        .notification-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .notification-error {
+            background-color: var(--error-color);
+            color: white;
+        }
+
+        /* Pagination Navigation */
+        .pagination-nav {
+            display: flex;
+            justify-content: space-between; /* Изменили на space-between */
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .pagination-info {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .pagination-btn {
+            padding: 4px 8px;
+            border: 1px solid var(--divider);
+            background-color: var(--surface-color);
+            cursor: pointer;
+            border-radius: var(--border-radius);
+            display: flex;
+            align-items: center;
+            gap: 4px; /* Пространство между иконкой и текстом */
+        }
+
+        .pagination-btn span {
+            /* Поднимаем текст немного вверх для лучшего выравнивания */
+            position: relative;
+            top: -1px;
+        }
+
+        .pagination-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            background-color: #f0f0f0;
+        }
+
+        /* Уменьшение высоты карточки пагинации */
+        .pagination-card .card-content {
+            padding: 8px; /* Уменьшаем padding в 2 раза */
+        }
+
+        /* Dropdown для экспорта */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0; /* Выравнивание по правому краю */
+            background-color: var(--surface-color);
+            min-width: 200px;
+            box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
+            z-index: 1;
+            border-radius: var(--border-radius);
+        }
+
+        .dropdown-content a {
+            color: var(--text-primary);
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            cursor: pointer;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #f1f1f1;
+        }
+
+        .dropdown-content a i {
+            margin-right: 8px;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .dropdown:hover .btn-success {
+            background-color: var(--primary-dark);
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Card -->
+        <div class="card">
+            <div class="card-header">
+                <h1>Получение списка собственных карточек с краткой информацией по ним</h1>
+                <!-- <div class="subtitle">Запрос к методу /v4/product-list</div> -->
+            </div>
+        </div>
+
+        <!-- Limit Info Card -->
+        <div class="card">
+            <div class="card-content">
+                <div id="limitInfo" class="status-info status-card">
+                    <div class="d-flex align-center justify-between">
+                        <span>Загрузка информации о лимитах...</span>
+                        <i class="material-icons">info</i>
+                    </div>
+                </div>
+                <!-- Pause Info -->
+                <div id="pauseInfo" class="status-error status-card" style="display: none;">
+                    <div class="d-flex align-center justify-between">
+                        <div>
+                            <strong>Лимит запросов исчерпан!</strong><br>
+                            Следующий запрос возможен через: <span id="pauseTime">0</span> секунд
+                        </div>
+                        <i class="material-icons">timer_off</i>
+                    </div>
+                </div>
+                <!-- Progress Bar -->
+                <div class="progress-container">
+                    <div class="progress-info">
+                        <span>Использовано запросов</span>
+                        <span id="progressText">0/100</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="progress" class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div class="text-center mt-16">
+                        <small class="text-secondary" id="windowInfo">Окно запросов обновляется каждые 5 минут</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Request Form Card -->
+        <div class="card">
+            <div class="card-content">
+                <form id="requestForm">
+                    <div class="d-flex gap-16 mb-16">
+                        <div class="form-group" style="flex: 1;">
+                            <label for="fromDate" class="input-label">Дата начала</label>
+                            <input type="date" id="fromDate" class="input-field">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="toDate" class="input-label">Дата окончания</label>
+                            <input type="date" id="toDate" class="input-field">
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button type="submit" id="submitButton" class="btn btn-primary">
+                            <i class="material-icons">send</i> Отправить запрос
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Pagination Navigation Card -->
+        <div class="card pagination-card">
+            <div class="card-content">
+                <div class="pagination-nav">
+                    <div class="d-flex align-center gap-16"> <!-- Контейнер для кнопок и информации о странице -->
+                        <button id="prevPageBtn" class="pagination-btn" disabled>
+                            <i class="material-icons">navigate_before</i> <span>Назад</span>
+                        </button>
+                        <div class="pagination-info">
+                            Страница <span id="currentPage">1</span> из <span id="totalPages">0</span>
+                        </div>
+                        <button id="nextPageBtn" class="pagination-btn" disabled>
+                            <span>Вперед</span> <i class="material-icons">navigate_next</i>
+                        </button>
+                    </div>
+                    <div class="pagination-info"> <!-- Правый блок -->
+                        Всего записей: <span id="totalRecords">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Card -->
+        <div class="card">
+            <div class="card-content">
+                <div class="d-flex justify-between align-center mb-16">
+                    <h2>Результаты</h2>
+                    <div class="d-flex gap-16">
+                        <!-- Dropdown для экспорта -->
+                        <div class="dropdown">
+                            <button id="exportButton" class="btn btn-success" disabled>
+                                <i class="material-icons">file_download</i> Выгрузить в Excel
+                            </button>
+                            <div class="dropdown-content">
+                                <a id="exportCurrentPageBtn">
+                                    <i class="material-icons">table_chart</i> Выгрузить только текущую страницу
+                                </a>
+                                <a id="exportAllBtn">
+                                    <i class="material-icons">dataset</i> Выгрузить всё
+                                </a>
+                            </div>
+                        </div>
+                        <!-- /Dropdown -->
+                        <button id="clearButton" class="btn btn-error" disabled>
+                            <i class="material-icons">clear</i> Очистить
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Good ID</th>
+                                <th>GTIN</th>
+                                <th>Наименование товара</th>
+                                <th>Торговая марка</th>
+                                <th>Статус</th>
+                                <th>Дата обновления</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultBody">
+                            <!-- Сюда будут добавляться строки с результатами -->
+                            <tr id="emptyStateRow">
+                                <td colspan="6" class="empty-state">
+                                    <i class="material-icons">inbox</i>
+                                    <div>Здесь появятся результаты запросов</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let countdownInterval = null;
+        const MAX_REQUESTS = 100;
+        const TIME_WINDOW = 300; // 300 секунд = 5 минут
+        const PAGE_SIZE = 100; // Фиксированный лимит для отображения
+        const EXPORT_PAGE_SIZE = 1000; // Лимит для экспорта
+
+        // Состояние для пагинации
+        let currentPage = 1;
+        let totalPages = 0;
+        let totalRecords = 0; // Добавлено для отображения общего количества
+        let currentFromDateString = '';
+        let currentToDateString = '';
+
+
+
+
+        function ExportTableToExcel(type, fn, dl) {
+            var elt = document.getElementById('resultBody');
+            // Создаем копию таблицы без пустого состояния
+            const tempTable = elt.cloneNode(true);
+            const emptyRow = tempTable.querySelector('#emptyStateRow');
+            if (emptyRow) {
+                emptyRow.remove();
+            }
+            var wb = XLSX.utils.table_to_book(tempTable, { sheet: "result" });
+            return dl ?
+                XLSX.write(wb, { bookType: type, bookSST: true, type: 'base64' }) :
+                XLSX.writeFile(wb, (fn || 'SheetR') + '.' + (type || 'xlsx'));
+        }
+
+        // Функция для экспорта всех данных
+        async function exportAllToExcel() {
+            const exportButton = document.getElementById('exportButton');
+            exportButton.disabled = true;
+            exportButton.innerHTML = '<i class="material-icons">hourglass_empty</i> Подготовка данных...';
+			let allData = []; // <--  Локальный кэш для данных всего набора (для экспорта "всё")
+            try {
+                if (!currentFromDateString || !currentToDateString) {
+                     alert('Невозможно экспортировать всё: даты (from_date и to_date) не установлены.');
+                     return;
+                }
+
+                // Очищаем кэш
+                allDataCache = [];
+                let offset = 0;
+                let hasMoreData = true;
+
+                while (hasMoreData) {
+                    // Формируем URL для запроса всех данных
+                    let apiUrl = `/nat-cat-1/proxy-product-list`;
+                    const params = new URLSearchParams();
+                    params.append('from_date', `${currentFromDateString} 00:00:00`);
+                    params.append('to_date', `${currentToDateString} 23:59:59`);
+                    params.append('limit', EXPORT_PAGE_SIZE.toString()); // Используем лимит 1000 для экспорта
+                    params.append('offset', offset.toString());
+
+                    apiUrl += '?' + params.toString();
+
+                    const response = await fetch(apiUrl, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 429) {
+                            // Обработка лимита (429) - можно добавить задержку или ожидание
+                            console.error('Превышен лимит запросов при экспорте "всё", ожидание...');
+                            // Попробуем получить статус и подождать
+                            const statusResponse = await fetch('/nat-cat-1/rate-limit-status');
+                            const status = await statusResponse.json();
+                            const waitTime = (status.timeUntilReset || 300) * 1000; // в мс
+                            await new Promise(resolve => setTimeout(resolve, waitTime));
+                            // Повторяем текущий запрос
+                            continue; // Переходим к следующей итерации цикла, чтобы повторить запрос
+                        } else if (response.status === 413) {
+                            // Обработка ошибки 413
+                            const data = await response.json();
+                            const total = data.result.total || 'N/A';
+                            alert(`Ошибка: 413 Payload Too Large. Количество товаров превышает 10000. ${total}`);
+                            return; // Прерываем экспорт
+                        } else {
+                            throw new Error(`Ошибка сервера при запросе всех данных: ${response.status} ${response.statusText}`);
+                        }
+                    }
+
+                    const data = await response.json();
+                    console.log('Ответ API (product-list) для экспорта всех данных (offset ' + offset + '):', data);
+
+                    // Проверяем структуру ответа
+                    if (data && data.result && Array.isArray(data.result.goods)) {
+                        // Обработка ошибки 413 в теле ответа (код '02') - дополнительная проверка
+                        if (data.result.errors && data.result.errors.some(e => e.code === '02')) {
+                            const total = data.result.total || 'N/A';
+                            alert(`Ошибка: 413 Payload Too Large. Количество товаров превышает 10000. ${total}`);
+                            return; // Прерываем экспорт
+                        }
+
+                        const goods = data.result.goods;
+                        // Добавляем полученные данные к кэшу
+                        allDataCache.push(...goods);
+
+                        // Проверяем, есть ли ещё данные
+                        if (goods.length < EXPORT_PAGE_SIZE) {
+                            // Если получено меньше, чем лимит, значит данных больше нет
+                            hasMoreData = false;
+                        } else {
+                            // Иначе увеличиваем offset и продолжаем
+                            offset += EXPORT_PAGE_SIZE;
+                        }
+                    } else {
+                        throw new Error('Нет данных в ответе для экспорта всех данных или непредвиденная структура.');
+                    }
+                }
+
+                // Создаем временную таблицу для экспорта из кэшированных данных
+                const tempTable = document.createElement('table');
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                ['Good ID', 'GTIN', 'Наименование товара', 'Торговая марка', 'Статус', 'Дата обновления'].forEach(headerText => {
+                    const th = document.createElement('th');
+                    th.textContent = headerText;
+                    headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+                tempTable.appendChild(thead);
+
+                const tbody = document.createElement('tbody');
+                allDataCache.forEach(good => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${good.good_id || 'N/A'}</td>
+                        <td>${good.gtin || 'N/A'}</td>
+                        <td>${good.good_name || 'N/A'}</td>
+                        <td>${good.brand_name || 'N/A'}</td>
+                        <td>${good.good_status || 'N/A'}</td>
+                        <td>${good.updated_date || 'N/A'}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                tempTable.appendChild(tbody);
+
+                // Выгружаем кэшированные данные
+                var wb = XLSX.utils.table_to_book(tempTable, { sheet: "result" });
+                XLSX.writeFile(wb, 'product_list_full_export.xlsx');
+				    // === ЭКСПОРТ БЕЗ ВРЕМЕННОЙ HTML-ТАБЛИЦЫ ===
+				<!-- const ws = XLSX.utils.json_to_sheet(allData.map(good => ({ -->
+				  <!-- "Good ID": good.good_id || 'N/A', -->
+				  <!-- "GTIN": good.gtin || 'N/A', -->
+				  <!-- "Наименование товара": good.good_name || 'N/A', -->
+				  <!-- "Торговая марка": good.brand_name || 'N/A', -->
+				  <!-- "Статус": good.good_status || 'N/A', -->
+				  <!-- "Дата обновления": good.updated_date || 'N/A' -->
+				<!-- }))); -->
+
+				<!-- const wb = XLSX.utils.book_new(); -->
+				<!-- XLSX.utils.book_append_sheet(wb, ws, "result"); -->
+				<!-- XLSX.writeFile(wb, 'product_list_full_export.xlsx'); -->
+				
+				
+
+            } catch (error) {
+                console.error('Ошибка при экспорте всех данных:', error);
+                alert('Произошла ошибка при подготовке данных для экспорта "всё": ' + error.message);
+            } finally {
+				allData = [];
+                // Восстанавливаем кнопку экспорта
+                const exportButton = document.getElementById('exportButton');
+                exportButton.disabled = false;
+                exportButton.innerHTML = '<i class="material-icons">file_download</i> Выгрузить в Excel';
+            }
+        }
+
+        function removeEmptyState() {
+            const emptyStateRow = document.getElementById('emptyStateRow');
+            if (emptyStateRow && emptyStateRow.parentNode) {
+                emptyStateRow.parentNode.removeChild(emptyStateRow);
+            }
+        }
+
+        function removeClearNotification() {
+            const clearNotification = document.querySelector('.notification-success');
+            if (clearNotification) {
+                clearNotification.classList.remove('show');
+            }
+        }
+
+        async function updateLimitInfo() {
+            try {
+                const response = await fetch('/nat-cat-1/rate-limit-status');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const status = await response.json();
+                console.log('Получен статус лимита:', status);
+
+                const limitInfo = document.getElementById('limitInfo');
+                const pauseInfo = document.getElementById('pauseInfo');
+                const pauseTime = document.getElementById('pauseTime');
+                const progress = document.getElementById('progress');
+                const progressText = document.getElementById('progressText');
+
+                const progressPercentage = (status.used / MAX_REQUESTS) * 100;
+                progress.style.width = `${progressPercentage}%`;
+                progressText.textContent = `${status.used}/${MAX_REQUESTS}`;
+
+                // Обновляем классы прогресс-бара
+                progress.className = 'progress-fill';
+                if (progressPercentage >= 100) {
+                    progress.classList.add('error');
+                } else if (progressPercentage >= 80) {
+                    progress.classList.add('warning');
+                }
+
+                if (status.isPaused) {
+                    pauseInfo.style.display = 'block';
+                    pauseTime.textContent = status.timeUntilReset;
+                    limitInfo.innerHTML = `<div class="d-flex align-center justify-between"><span>Лимит исчерпан: 0 из ${MAX_REQUESTS} (сброс через ${status.timeUntilReset} сек)</span><i class="material-icons">block</i></div>`;
+                    limitInfo.className = 'status-error status-card';
+
+                    const submitButton = document.getElementById('submitButton');
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = '<i class="material-icons">timer_off</i> Лимит исчерпан (ожидание сброса)';
+
+                    if (!countdownInterval) {
+                        startCountdown(status.timeUntilReset);
+                    }
+                } else {
+                    pauseInfo.style.display = 'none';
+                    limitInfo.innerHTML = `<div class="d-flex align-center justify-between"><span>Доступно запросов: ${status.remaining}/${MAX_REQUESTS}</span><i class="material-icons">check_circle</i></div>`;
+                    if (status.remaining <= 10) {
+                        limitInfo.className = 'status-warning status-card';
+                    } else {
+                        limitInfo.className = 'status-success status-card';
+                    }
+
+                    const submitButton = document.getElementById('submitButton');
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = '<i class="material-icons">send</i> Отправить запрос';
+
+                    // Сброс таймера при восстановлении
+                    if (countdownInterval) {
+                        clearInterval(countdownInterval);
+                        countdownInterval = null;
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка при получении статуса лимитов:', error);
+                const limitInfo = document.getElementById('limitInfo');
+                limitInfo.innerHTML = `<div class="d-flex align-center justify-between"><span>Ошибка загрузки информации о лимитах</span><i class="material-icons">error_outline</i></div>`;
+                limitInfo.className = 'status-error status-card';
+            }
+        }
+
+        function startCountdown(seconds) {
+            let remaining = seconds;
+            const submitButton = document.getElementById('submitButton');
+
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+
+            submitButton.disabled = true;
+            submitButton.innerHTML = `<i class="material-icons">hourglass_empty</i> Ожидание сброса (${remaining}s)`;
+
+            countdownInterval = setInterval(() => {
+                remaining--;
+                submitButton.innerHTML = `<i class="material-icons">hourglass_empty</i> Ожидание сброса (${remaining}s)`;
+
+                if (remaining <= 0) {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+                    updateLimitInfo(); // Обновить статус, чтобы кнопка снова стала активной
+                }
+            }, 1000);
+        }
+
+        // Функция для обновления UI пагинации
+        function updatePaginationUI() {
+            document.getElementById('currentPage').textContent = currentPage;
+            document.getElementById('totalPages').textContent = totalPages;
+            document.getElementById('totalRecords').textContent = totalRecords; // Обновляем общее кол-во
+
+            const prevBtn = document.getElementById('prevPageBtn');
+            const nextBtn = document.getElementById('nextPageBtn');
+
+            prevBtn.disabled = (currentPage <= 1);
+            nextBtn.disabled = (currentPage >= totalPages);
+        }
+
+        // Функция для отправки запроса с заданным offset
+        async function sendRequestWithOffset(offset) {
+            const resultBody = document.getElementById('resultBody');
+            const submitButton = document.getElementById('submitButton');
+            const exportButton = document.getElementById('exportButton');
+            const clearButton = document.getElementById('clearButton');
+
+            // УДАЛЯЕМ пустое состояние при начале выполнения запросов
+            removeEmptyState();
+            removeClearNotification();
+
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="material-icons">hourglass_empty</i> Выполняется запрос...';
+            exportButton.disabled = true; // Отключаем кнопку экспорта на время запроса
+            clearButton.disabled = true;
+
+            try {
+                // Формируем URL с параметрами из формы
+                let apiUrl = `/nat-cat-1/proxy-product-list`;
+                const params = new URLSearchParams();
+                // Подставляем время к выбранным датам
+                if (currentFromDateString) {
+                    params.append('from_date', `${currentFromDateString} 00:00:00`);
+                }
+                if (currentToDateString) {
+                    params.append('to_date', `${currentToDateString} 23:59:59`);
+                }
+                params.append('limit', PAGE_SIZE.toString()); // Всегда 100
+                params.append('offset', offset.toString());
+
+                apiUrl += '?' + params.toString();
+
+                const response = await fetch(apiUrl, {
+                    method: 'GET', // Используем GET
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (!response.ok) {
+                    if (response.status === 429) {
+                        const errorData = await response.json();
+                        const errorMessage = errorData.message || 'Лимит запросов исчерпан';
+                        const retryAfter = errorData.retryAfter || 300;
+
+                        const pauseRow = document.createElement('tr');
+                        pauseRow.innerHTML = `<td colspan="6" class="status-error status-card"><div class="d-flex align-center justify-between"><div><strong>Лимит запросов исчерпан!</strong><br>${errorMessage}<br>Следующий запрос через: ${retryAfter} секунд</div><i class="material-icons">timer_off</i></div></td>`;
+                        resultBody.appendChild(pauseRow);
+
+                        startCountdown(retryAfter);
+                        return; // Прерываем выполнение после ошибки 429
+                    } else if (response.status === 413) {
+						// Обработка ошибки 413 для основного запроса
+						const error = await response.json();
+						//console.log('Ответ API (product-list):', error);
+
+						let total = 'N/A'; // Значение по умолчанию
+						// Проверяем, есть ли строка в error.error
+						if (error && typeof error.error === 'string') {
+							try {
+								// Пытаемся разобрать строку как JSON
+								const errorResult = JSON.parse(error.error);
+								// Извлекаем total из вложенной структуры result
+								total = errorResult.result?.total || 'N/A';
+							} catch (parseError) {
+								// Если разбор JSON не удался, total останется 'N/A'
+								console.error('Ошибка разбора JSON из error.error:', parseError);
+							}
+						}
+						// Если error.error нет или не строка, total останется 'N/A'
+
+						//console.log('Ответ API (total):', total);
+                        //alert(`Ошибка: 413 Payload Too Large. Количество товаров превышает 10000.`);
+                        // Добавляем строку с сообщением об ошибке в таблицу
+                        const row = document.createElement('tr');
+                        row.className = 'compact-row';
+                        row.innerHTML = `<td class="compact-cell" colspan="6" style="color: var(--error-color);">Запрос вернул ${total} строк. Ошибка: 413 Payload Too Large. Количество товаров превышает 10000. </td>`;
+                        resultBody.appendChild(row);
+                        // Сбрасываем totalPages и totalRecords
+                        totalPages = 0;
+                        totalRecords = 0;
+                        updatePaginationUI(); // Обновляем UI пагинации
+                        return; // Прерываем дальнейшую обработку
+                    } else {
+                        throw new Error(`Ошибка сервера: ${response.status} ${response.statusText}`);
+                    }
+                }
+
+                updateLimitInfo(); // Обновляем информацию о лимите после успешного запроса
+                const data = await response.json();
+                console.log('Ответ API (product-list):', data);
+
+                // Очищаем таблицу перед заполнением новыми данными
+                resultBody.innerHTML = '';
+
+                // Проверяем структуру ответа (для успешного ответа, статус != 413)
+                if (data && data.result && Array.isArray(data.result.goods)) {
+                    const goods = data.result.goods;
+                    totalRecords = data.result.total || 0; // Обновляем общее количество
+                    totalPages = Math.ceil(totalRecords / PAGE_SIZE); // Рассчитываем общее количество страниц
+
+                    // Обработка успешного ответа
+                    for (const good of goods) {
+                        const row = document.createElement('tr');
+                        row.className = 'compact-row';
+                        row.innerHTML = `
+                            <td class="compact-cell">${good.good_id || 'N/A'}</td>
+                            <td class="compact-cell">${good.gtin || 'N/A'}</td>
+                            <td class="compact-cell">${good.good_name || 'N/A'}</td>
+                            <td class="compact-cell">${good.brand_name || 'N/A'}</td>
+                            <td class="compact-cell">${good.good_status || 'N/A'}</td>
+                            <td class="compact-cell">${good.updated_date || 'N/A'}</td>
+                        `;
+                        resultBody.appendChild(row);
+                    }
+
+                    // Если данных нет, но структура правильная
+                    if (goods.length === 0) {
+                         const row = document.createElement('tr');
+                         row.className = 'compact-row';
+                         row.innerHTML = `<td class="compact-cell" colspan="6">Нет данных для отображения на этой странице.</td>`;
+                         resultBody.appendChild(row);
+                    }
+                } else {
+                    // Обработка случая, когда данных нет или структура неожиданная (но не 413)
+                    const errorMessage = data && data.error ? data.error : 'Нет данных в ответе или непредвиденная структура.';
+                    const row = document.createElement('tr');
+                    row.className = 'compact-row';
+                    row.innerHTML = `<td class="compact-cell" colspan="6" style="color: var(--error-color);">${errorMessage}</td>`;
+                    resultBody.appendChild(row);
+                    totalPages = 0; // Если ошибка, сбрасываем количество страниц
+                    totalRecords = 0; // Сбрасываем общее количество
+                }
+
+                 // Обновляем UI пагинации после получения данных
+                 updatePaginationUI();
+
+            } catch (error) {
+                if (!countdownInterval) { // Не добавляем строку ошибки, если лимит исчерпан и запущен таймер
+                    const row = document.createElement('tr');
+                    row.className = 'compact-row';
+                    row.innerHTML = `<td class="compact-cell" colspan="6" style="color: var(--error-color);">${error.message}</td>`;
+                    resultBody.appendChild(row);
+                    totalPages = 0; // При ошибке сбрасываем количество страниц
+                    totalRecords = 0; // Сбрасываем общее количество
+                    updatePaginationUI(); // Обновляем UI пагинации
+                }
+            } finally {
+                if (!countdownInterval) { // Не снимаем блокировку, если запущен таймер ожидания
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = '<i class="material-icons">send</i> Отправить запрос';
+                    exportButton.disabled = false; // Активируем кнопку экспорта после завершения запроса
+                    clearButton.disabled = false;
+                }
+            }
+        }
+
+        // Обработчик формы "Отправить запрос"
+        document.getElementById('requestForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const fromDateElement = document.getElementById('fromDate');
+            const toDateElement = document.getElementById('toDate');
+
+            const fromDateValue = fromDateElement.value.trim();
+            const toDateValue = toDateElement.value.trim();
+
+            // Валидация дат (проверяем, что обе даты выбраны)
+            if (!fromDateValue || !toDateValue) {
+                alert('Пожалуйста, выберите обе даты (from_date и to_date).');
+                return;
+            }
+
+            // Сохраняем выбранные даты в формате YYYY-MM-DD для последующего использования
+            currentFromDateString = fromDateValue;
+            currentToDateString = toDateValue;
+
+            // Сбрасываем на первую страницу
+            currentPage = 1;
+
+            // Отправляем запрос с offset = 0 (первая страница)
+            await sendRequestWithOffset(0);
+        });
+
+        // Обработчик кнопки "Назад"
+        document.getElementById('prevPageBtn').addEventListener('click', async () => {
+            if (currentPage > 1) {
+                currentPage--;
+                const offset = (currentPage - 1) * PAGE_SIZE;
+                await sendRequestWithOffset(offset);
+            }
+        });
+
+        // Обработчик кнопки "Вперед"
+        document.getElementById('nextPageBtn').addEventListener('click', async () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                const offset = (currentPage - 1) * PAGE_SIZE;
+                await sendRequestWithOffset(offset);
+            }
+        });
+
+        // Обработчик кнопки "Очистить"
+        document.getElementById('clearButton').addEventListener('click', () => {
+            document.getElementById('resultBody').innerHTML = '<tr id="emptyStateRow"><td colspan="6" class="empty-state"><i class="material-icons">inbox</i><div>Здесь появятся результаты запросов</div></td></tr>';
+            document.getElementById('exportButton').disabled = true;
+            document.getElementById('clearButton').disabled = true;
+            totalPages = 0;
+            totalRecords = 0; // Сброс общего количества
+            currentPage = 1;
+            updatePaginationUI();
+            // Показать уведомление об очистке (опционально)
+            const notification = document.createElement('div');
+            notification.className = 'notification notification-success show';
+            notification.textContent = 'Результаты очищены.';
+            document.querySelector('.card-content').insertAdjacentElement('afterend', notification);
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 3000);
+        });
+
+        // Обработчик кнопки "Выгрузить только текущую страницу"
+        document.getElementById('exportCurrentPageBtn').addEventListener('click', () => {
+            ExportTableToExcel("xlsx", "product_list_current_page.xlsx", false);
+        });
+
+        // Обработчик кнопки "Выгрузить всё"
+        document.getElementById('exportAllBtn').addEventListener('click', async () => {
+            if (!currentFromDateString || !currentToDateString) {
+                alert('Невозможно экспортировать всё: даты (from_date и to_date) не установлены.');
+                return;
+            }
+            await exportAllToExcel();
+        });
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', () => {
+            updateLimitInfo();
+            setInterval(updateLimitInfo, 5000);
+            updatePaginationUI(); // Инициализация UI пагинации
+        });
+    </script>
+</body>
+</html>

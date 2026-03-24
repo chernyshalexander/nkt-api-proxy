@@ -1,246 +1,185 @@
-﻿const express = require('express');
+/**
+ * Proxy server for the National Goods Catalog API (НКТ).
+ *
+ * Routes (all under /nat-cat-1/):
+ *   POST /proxy              — look up product info by GTIN (rd-info-by-gtin)
+ *   GET  /proxy-product-list — retrieve a paginated product list with date filters
+ *   GET  /rate-limit-status  — return current rate limit counters
+ *
+ * Rate limiting: 100 requests per 5-minute sliding window.
+ * API key: stored in api-key.json (excluded from the repository — see .gitignore).
+ *          Copy api-key.example.json → api-key.json and fill in your key.
+ */
+
+const express = require('express');
 const https = require('https');
 const fetch = require('node-fetch');
 const fs = require('fs');
+
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 const app = express();
 const port = 3000;
 
-// API-ключ хранится в файле api-key.json (не включён в репозиторий — см. .gitignore).
-// Скопируйте api-key.example.json → api-key.json и укажите свой ключ.
 const { apikey: API_KEY } = JSON.parse(fs.readFileSync('./api-key.json', 'utf8'));
 
-// Создаем роутер для префикса /nat-cat-1/
 const router = express.Router();
 
-// Разрешаем обработку JSON-запросов
 app.use(express.json());
 
-// Добавляем CORS middleware
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     next();
 });
 
-// Обслуживаем статические файлы из папки "public" по префиксу /nat-cat-1/
 app.use('/nat-cat-1', express.static('public'));
 
-// Переменные для отслеживания лимитов
+// Rate limiting — sliding window
 const MAX_REQUESTS = 100;
-const TIME_WINDOW = 5 * 60 * 1000; // 5 минут в миллисекундах
-let requestTimestamps = []; // Массив временных меток запросов
-let windowStartTime = Date.now(); // Время начала текущего временного окна
+const TIME_WINDOW = 5 * 60 * 1000; // ms
+let requestTimestamps = [];
+let windowStartTime = Date.now();
 
-// Функция для очистки устаревших временных меток
 function cleanupOldTimestamps() {
     const now = Date.now();
-    // 'Окно' начинается с самого старого запроса и длится TIME_WINDOW
-    // Удаляем только те, что строго за его пределами
-    const cutoffTime = now - TIME_WINDOW;
-    requestTimestamps = requestTimestamps.filter(timestamp => timestamp > cutoffTime);
-
-    // Если все метки удалены, обновляем windowStartTime
-    if (requestTimestamps.length === 0) {
-        windowStartTime = now;
-    } else {
-        // Иначе, windowStartTime - это самая ранняя оставшаяся метка
-        windowStartTime = requestTimestamps[0];
-    }
+    requestTimestamps = requestTimestamps.filter(ts => ts > now - TIME_WINDOW);
+    windowStartTime = requestTimestamps.length > 0 ? requestTimestamps[0] : Date.now();
 }
 
-// --- НАЧАЛО: Определение middleware для проверки лимита ---
 function checkRateLimit(req, res, next) {
     const now = Date.now();
-
-    // Очищаем устаревшие временные метки
     cleanupOldTimestamps();
 
-    // Проверяем, не превышен ли лимит в текущем временном окне
     if (requestTimestamps.length >= MAX_REQUESTS) {
-        // Вычисляем время до освобождения следующего слота
-        const oldestTimestamp = requestTimestamps[0];
-        const timeUntilNextSlot = Math.ceil((oldestTimestamp + TIME_WINDOW - now) / 1000);
-
+        const timeUntilNextSlot = Math.ceil((requestTimestamps[0] + TIME_WINDOW - now) / 1000);
         return res.status(429).json({
-            error: 'Лимит запросов исчерпан',
+            error: 'Rate limit exceeded',
             retryAfter: timeUntilNextSlot,
-            message: `Достигнут лимит ${MAX_REQUESTS} запросов за 5 минут. Следующий запрос будет доступен через ${timeUntilNextSlot} секунд.`
+            message: `Limit of ${MAX_REQUESTS} requests per 5 minutes reached. Retry in ${timeUntilNextSlot} seconds.`
         });
     }
 
-    // Добавляем временную метку текущего запроса
     requestTimestamps.push(now);
     next();
 }
-// --- КОНЕЦ: Определение middleware для проверки лимита ---
 
-// Прокси-маршрут (теперь использует именованное middleware)
+function getRateLimitHeaders() {
+    cleanupOldTimestamps();
+    const remaining = MAX_REQUESTS - requestTimestamps.length;
+    const timeUntilReset = requestTimestamps.length > 0
+        ? Math.ceil((requestTimestamps[0] + TIME_WINDOW - Date.now()) / 1000)
+        : 0;
+    return {
+        'X-RateLimit-Limit': MAX_REQUESTS,
+        'X-RateLimit-Remaining': Math.max(0, remaining),
+        'X-RateLimit-Reset': requestTimestamps.length > 0 ? requestTimestamps[0] + TIME_WINDOW : Date.now(),
+        'X-RateLimit-RetryAfter': timeUntilReset
+    };
+}
+
+// POST /proxy — product info by GTIN
 router.post('/proxy', checkRateLimit, async (req, res) => {
     const apiUrl = `https://апи.национальный-каталог.рф/v4/rd-info-by-gtin?apikey=${API_KEY}`;
-    console.log('Отправка запроса к API НКТ:', apiUrl);
-    console.log('Тело запроса:', req.body);
+    console.log('POST /proxy', apiUrl, req.body);
 
     try {
         const response = await fetch(apiUrl, {
             method: 'POST',
-            headers: {
-                'Accept-Charset': 'utf-8',
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Accept-Charset': 'utf-8', 'Content-Type': 'application/json' },
             body: JSON.stringify(req.body),
         });
 
-        console.log('Статус ответа:', response.status);
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('Ошибка API:', response.status, errorText);
+            console.error('API error:', response.status, errorText);
             return res.status(response.status).json({ error: errorText });
         }
 
         const data = await response.json();
-        console.log('Ответ API:', data);
-
-        // Очищаем устаревшие временные метки и получаем оставшееся количество запросов перед отправкой ответа
-        cleanupOldTimestamps(); // Обновляем состояние перед отправкой заголовков
-        const remainingRequests = MAX_REQUESTS - requestTimestamps.length;
-        const timeUntilReset = requestTimestamps.length > 0 ? Math.ceil((requestTimestamps[0] + TIME_WINDOW - Date.now()) / 1000) : 0;
-
-        // Устанавливаем заголовки с информацией о лимитах
-        res.set({
-            'X-RateLimit-Limit': MAX_REQUESTS,
-            'X-RateLimit-Remaining': Math.max(0, remainingRequests),
-            'X-RateLimit-Reset': requestTimestamps.length > 0 ? requestTimestamps[0] + TIME_WINDOW : Date.now(),
-            'X-RateLimit-RetryAfter': timeUntilReset
-        });
-
-        res.json(data);
+        res.set(getRateLimitHeaders()).json(data);
     } catch (error) {
-        console.error('Ошибка при запросе к API:', error);
-        res.status(500).json({ error: 'Произошла ошибка при запросе к API', details: error.message });
+        console.error('Request failed:', error);
+        res.status(500).json({ error: 'Internal proxy error', details: error.message });
     }
 });
 
-// --- Новый маршрут для product-list ---
-// Маршрут для нового метода product-list
-// Используем GET, так как API документирует его как GET запрос
-// Параметры будут передаваться в URL-строке запроса
+// GET /proxy-product-list — paginated product list with optional date range
 router.get('/proxy-product-list', checkRateLimit, async (req, res) => {
-    // Получаем параметры из query string
     const { from_date, to_date, limit, offset } = req.query;
 
-    // Валидация параметров (простая)
-    // from_date и to_date - строка в формате YYYY-MM-DD HH:mm:ss
-    // limit - число, 1-1000
-    // offset - число, >= 0
-    let validationErrors = [];
-    if (from_date && !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(from_date)) {
-        validationErrors.push('Параметр from_date должен быть в формате YYYY-MM-DD HH:mm:ss');
-    }
-    if (to_date && !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(to_date)) {
-        validationErrors.push('Параметр to_date должен быть в формате YYYY-MM-DD HH:mm:ss');
-    }
+    const datePattern = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+    const validationErrors = [];
+
+    if (from_date && !datePattern.test(from_date))
+        validationErrors.push('from_date must be in format YYYY-MM-DD HH:mm:ss');
+    if (to_date && !datePattern.test(to_date))
+        validationErrors.push('to_date must be in format YYYY-MM-DD HH:mm:ss');
     if (limit !== undefined) {
-        const parsedLimit = parseInt(limit);
-        if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 1000) {
-            validationErrors.push('Параметр limit должен быть числом от 1 до 1000');
-        }
+        const n = parseInt(limit);
+        if (isNaN(n) || n < 1 || n > 1000)
+            validationErrors.push('limit must be an integer between 1 and 1000');
     }
     if (offset !== undefined) {
-        const parsedOffset = parseInt(offset);
-        if (isNaN(parsedOffset) || parsedOffset < 0) {
-            validationErrors.push('Параметр offset должен быть числом >= 0');
-        }
+        const n = parseInt(offset);
+        if (isNaN(n) || n < 0)
+            validationErrors.push('offset must be a non-negative integer');
     }
 
     if (validationErrors.length > 0) {
-        console.error('Ошибка валидации параметров:', validationErrors);
-        return res.status(400).json({ error: 'Неверные параметры запроса', details: validationErrors });
+        return res.status(400).json({ error: 'Invalid query parameters', details: validationErrors });
     }
 
-    // Формируем URL с параметрами из query string
-    const params = new URLSearchParams();
-    params.append('apikey', API_KEY);
+    const params = new URLSearchParams({ apikey: API_KEY });
     if (from_date) params.append('from_date', from_date);
-    if (to_date) params.append('to_date', to_date);
-    if (limit) params.append('limit', limit);
-    if (offset !== undefined) params.append('offset', offset); // offset может быть 0
+    if (to_date)   params.append('to_date', to_date);
+    if (limit)     params.append('limit', limit);
+    if (offset !== undefined) params.append('offset', offset); // offset=0 is valid
 
     const apiUrl = `https://апи.национальный-каталог.рф/v4/product-list?${params.toString()}`;
-
-    console.log('Отправка запроса к API НКТ (product-list):', apiUrl);
+    console.log('GET /proxy-product-list', apiUrl);
 
     try {
-        // GET-запрос, тело не передаем
         const response = await fetch(apiUrl, {
-            method: 'GET', // Указываем метод GET
-            headers: {
-                'Accept-Charset': 'utf-8',
-                'Content-Type': 'application/json',
-                // Если для этого метода требуется Authorization header (Bearer token), добавьте его:
-                // 'Authorization': 'Bearer ' + ВАШ_ТОКЕН
-            },
-            // body не нужен для GET
+            headers: { 'Accept-Charset': 'utf-8', 'Content-Type': 'application/json' },
         });
 
-        console.log('Статус ответа (product-list):', response.status);
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('Ошибка API (product-list):', response.status, errorText);
-            // Возвращаем ошибку с тем же статусом, что и от API
+            console.error('API error:', response.status, errorText);
             return res.status(response.status).json({ error: errorText });
         }
 
         const data = await response.json();
-        console.log('Ответ API (product-list):', data); // Для отладки
-
-        // Очищаем устаревшие временные метки и получаем оставшееся количество запросов перед отправкой ответа
-        cleanupOldTimestamps(); // Обновляем состояние перед отправкой заголовков
-        const remainingRequests = MAX_REQUESTS - requestTimestamps.length;
-        const timeUntilReset = requestTimestamps.length > 0 ? Math.ceil((requestTimestamps[0] + TIME_WINDOW - Date.now()) / 1000) : 0;
-
-        // Устанавливаем заголовки с информацией о лимитах (аналогично /proxy)
-        res.set({
-            'X-RateLimit-Limit': MAX_REQUESTS,
-            'X-RateLimit-Remaining': Math.max(0, remainingRequests),
-            'X-RateLimit-Reset': requestTimestamps.length > 0 ? requestTimestamps[0] + TIME_WINDOW : Date.now(),
-            'X-RateLimit-RetryAfter': timeUntilReset
-        });
-
-        // Возвращаем успешный ответ
-        res.json(data);
-
+        res.set(getRateLimitHeaders()).json(data);
     } catch (error) {
-        console.error('Ошибка при запросе к API (product-list):', error);
-        res.status(500).json({ error: 'Произошла ошибка при запросе к API', details: error.message });
+        console.error('Request failed:', error);
+        res.status(500).json({ error: 'Internal proxy error', details: error.message });
     }
 });
-// --- Конец нового маршрута ---
 
-// Маршрут для получения статуса лимитов
+// GET /rate-limit-status — current rate limit counters
 router.get('/rate-limit-status', (req, res) => {
-    cleanupOldTimestamps(); // Обновляем состояние перед отправкой статуса
+    cleanupOldTimestamps();
     const now = Date.now();
-    const remainingRequests = MAX_REQUESTS - requestTimestamps.length;
-    const timeUntilReset = requestTimestamps.length > 0 ? Math.ceil((requestTimestamps[0] + TIME_WINDOW - now) / 1000) : 0;
-    const isPaused = requestTimestamps.length >= MAX_REQUESTS;
-    const windowEnd = windowStartTime + TIME_WINDOW;
+    const remaining = MAX_REQUESTS - requestTimestamps.length;
+    const timeUntilReset = requestTimestamps.length > 0
+        ? Math.ceil((requestTimestamps[0] + TIME_WINDOW - now) / 1000)
+        : 0;
 
     res.json({
         limit: MAX_REQUESTS,
-        remaining: Math.max(0, remainingRequests),
+        remaining: Math.max(0, remaining),
         used: requestTimestamps.length,
-        isPaused: isPaused,
-        timeUntilReset: timeUntilReset, // Сколько секунд осталось до сброса
+        isPaused: requestTimestamps.length >= MAX_REQUESTS,
+        timeUntilReset,
         currentWindowStart: windowStartTime,
-        currentWindowEnd: windowEnd
+        currentWindowEnd: windowStartTime + TIME_WINDOW
     });
 });
 
-// Используем роутер для префикса /nat-cat-1
 app.use('/nat-cat-1', router);
 
-// Запуск сервера
 app.listen(port, () => {
-    console.log(`Прокси-сервер запущен на http://server-rep:${port}/nat-cat-1/`);
+    console.log(`Proxy server running at http://server-rep:${port}/nat-cat-1/`);
 });

@@ -9,6 +9,8 @@
  * Rate limiting: 100 requests per 5-minute sliding window.
  * API key: stored in api-key.json (excluded from the repository — see .gitignore).
  *          Copy api-key.example.json → api-key.json and fill in your key.
+ * Config:  stored in config.json (excluded from the repository — see .gitignore).
+ *          Copy config.example.json → config.json and set your hostname.
  */
 
 const express = require('express');
@@ -22,6 +24,7 @@ const app = express();
 const port = 3000;
 
 const { apikey: API_KEY } = JSON.parse(fs.readFileSync('./api-key.json', 'utf8'));
+const { hostname: HOSTNAME } = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
 
 const router = express.Router();
 
@@ -181,5 +184,5 @@ router.get('/rate-limit-status', (req, res) => {
 app.use('/nat-cat-1', router);
 
 app.listen(port, () => {
-    console.log(`Proxy server running at http://server-rep:${port}/nat-cat-1/`);
+    console.log(`Proxy server running at http://${HOSTNAME}:${port}/nat-cat-1/`);
 });

@@ -7,256 +7,14 @@
     <title>Получение списка собственных карточек с краткой информацией по ним</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
     <style>
-        :root {
-            --primary-color: #1976d2;
-            --primary-dark: #1565c0;
-            --primary-light: #42a5f5;
-            --secondary-color: #dc004e;
-            --surface-color: #ffffff;
-            --background-color: #f5f5f5;
-            --error-color: #d32f2f;
-            --success-color: #2e7d32;
-            --warning-color: #f57c00;
-            --info-color: #1975d1;
-            --text-primary: rgba(0, 0, 0, 0.87);
-            --text-secondary: rgba(0, 0, 0, 0.54);
-            --text-hint: rgba(0, 0, 0, 0.38);
-            --divider: rgba(0, 0, 0, 0.12);
-            --border-radius: 4px;
-            --card-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.08);
-            --transition: all 0.3s ease;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: var(--background-color);
-            padding: 16px;
-            color: var(--text-primary);
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .card {
-            background-color: var(--surface-color);
-            border-radius: var(--border-radius);
-            box-shadow: var(--card-shadow);
-            margin-bottom: 16px;
-            overflow: hidden;
-        }
-
-        .card-header {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 16px;
-        }
-
-        .card-header h1 {
-            margin: 0;
-            font-size: 1.25rem;
-            font-weight: 500;
-        }
-
-        .card-content {
-            padding: 16px;
-        }
-
+        /* Card actions: right-align for single submit button */
         .card-actions {
-            padding: 16px;
-            border-top: 1px solid var(--divider);
-            display: flex;
             justify-content: flex-end;
         }
 
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: var(--border-radius);
-            cursor: pointer;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: var(--transition);
-        }
-
-        .btn i {
-            margin-right: 8px;
-        }
-
-        .btn-primary {
-            background-color: var(--primary-color);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background-color: var(--primary-dark);
-        }
-
-        .btn-primary:disabled {
-            background-color: var(--text-secondary);
-            cursor: not-allowed;
-        }
-
-        .btn-success {
-            background-color: var(--success-color);
-            color: white;
-        }
-
-        .btn-success:hover {
-            background-color: #1b5e20;
-        }
-
-        .btn-error {
-            background-color: var(--error-color);
-            color: white;
-        }
-
-        .btn-error:hover {
-            background-color: #b71c1c;
-        }
-
-		.status-card {
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 16px;
-            border-left: 4px solid;
-        }
-
-        .status-success {
-            background-color: #e8f5e8;
-            border-left-color: var(--success-color);
-            color: var(--success-color);
-        }
-
-        .status-warning {
-            background-color: #fff3e0;
-            border-left-color: var(--warning-color);
-            color: var(--warning-color);
-        }
-
-        .status-error {
-            background-color: #ffebee;
-            border-left-color: var(--error-color);
-            color: var(--error-color);
-        }
-
-        .status-info {
-            background-color: #e3f2fd;
-            border-left-color: var(--primary-color);
-            color: var(--primary-color);
-        }
-
-        .d-flex {
-            display: flex;
-        }
-
-        .align-center {
-            align-items: center;
-        }
-
-        .justify-between {
-            justify-content: space-between;
-        }
-
-        .mt-8 {
-            margin-top: 8px;
-        }
-
-        .mt-16 {
-            margin-top: 16px;
-        }
-
-        .mb-8 {
-            margin-bottom: 8px;
-        }
-
-        .mb-16 {
-            margin-bottom: 16px;
-        }
-
-        .gap-16 {
-            gap: 16px;
-        }
-
-        .text-center {
-            text-align: center;
-        }
-
-        .text-secondary {
-            color: var(--text-secondary);
-        }
-
-        .subtitle {
-            margin-top: 8px;
-            color: var(--text-secondary);
-            font-size: 0.875rem;
-        }
-
-        .input-field {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--divider);
-            border-radius: var(--border-radius);
-            font-family: 'Roboto', sans-serif;
-            font-size: 1rem;
-            transition: var(--transition);
-        }
-
-        .input-field:focus {
-            outline: none;
-            border-color: var(--primary-color);
-        }
-
-        .input-field.error {
-            border-color: var(--error-color);
-        }
-
-        textarea.input-field {
-            min-height: 150px;
-            resize: vertical;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th, td {
-            border: 1px solid var(--divider);
-            padding: 8px;
-            text-align: left;
-        }
-
-        th {
-            background-color: #f0f0f0;
-            font-weight: 500;
-        }
-
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        .compact-row {
-            font-size: 0.85rem;
-        }
-
-        .compact-cell {
-            padding: 4px 8px;
-        }
-
-        /* Specific column widths for the results table */
+        /* Table column widths */
         th:nth-child(1), td:nth-child(1) { width: 10%; } /* good_id */
         th:nth-child(2), td:nth-child(2) { width: 15%; } /* gtin */
         th:nth-child(3), td:nth-child(3) { width: 30%; } /* good_name */
@@ -264,117 +22,10 @@
         th:nth-child(5), td:nth-child(5) { width: 15%; } /* good_status */
         th:nth-child(6), td:nth-child(6) { width: 15%; } /* updated_date */
 
-
-        .empty-state {
-            text-align: center;
-            padding: 32px;
-            color: var(--text-secondary);
-        }
-
-        .empty-state i {
-            font-size: 3rem;
-            margin-bottom: 16px;
-            color: var(--text-secondary);
-        }
-
-        .counter {
-            background-color: var(--success-color);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            margin-left: 8px;
-            font-size: 0.8rem;
-        }
-
-        /* Progress Bar */
-        .progress-container {
-            margin: 24px 0;
-        }
-
-        .progress-info {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 14px;
-            color: var(--text-secondary);
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background-color: #e0e0e0;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--success-color), #4caf50);
-            border-radius: 4px;
-            transition: width 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .progress-fill.warning {
-            background: linear-gradient(90deg, var(--warning-color), #ffb300);
-        }
-
-        .progress-fill.error {
-            background: linear-gradient(90deg, var(--error-color), #f44336);
-        }
-
-        .progress-fill::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-            animation: shimmer 2s infinite;
-        }
-
-        @keyframes shimmer {
-            0% { left: -100%; }
-            100% { left: 100%; }
-        }
-
-        .countdown {
-            font-weight: 500;
-            margin-left: 8px;
-            color: var(--primary-color);
-        }
-
-        .text-hint {
-            color: var(--text-hint);
-        }
-
-        .notification {
-            padding: 12px 16px;
-            margin-top: 16px;
-            border-radius: var(--border-radius);
-            display: none;
-        }
-
-        .notification.show {
-            display: block;
-        }
-
-        .notification-success {
-            background-color: var(--success-color);
-            color: white;
-        }
-
-        .notification-error {
-            background-color: var(--error-color);
-            color: white;
-        }
-
-        /* Pagination Navigation */
+        /* Pagination */
         .pagination-nav {
             display: flex;
-            justify-content: space-between; /* Изменили на space-between */
+            justify-content: space-between;
             align-items: center;
             gap: 16px;
             margin-bottom: 16px;
@@ -387,17 +38,16 @@
 
         .pagination-btn {
             padding: 4px 8px;
-            border: 1px solid var(--divider);
+            border: 1px solid var(--divider-color);
             background-color: var(--surface-color);
             cursor: pointer;
             border-radius: var(--border-radius);
             display: flex;
             align-items: center;
-            gap: 4px; /* Пространство между иконкой и текстом */
+            gap: 4px;
         }
 
         .pagination-btn span {
-            /* Поднимаем текст немного вверх для лучшего выравнивания */
             position: relative;
             top: -1px;
         }
@@ -411,12 +61,11 @@
             background-color: #f0f0f0;
         }
 
-        /* Уменьшение высоты карточки пагинации */
         .pagination-card .card-content {
-            padding: 8px; /* Уменьшаем padding в 2 раза */
+            padding: 8px;
         }
 
-        /* Dropdown для экспорта */
+        /* Export dropdown */
         .dropdown {
             position: relative;
             display: inline-block;
@@ -425,7 +74,7 @@
         .dropdown-content {
             display: none;
             position: absolute;
-            right: 0; /* Выравнивание по правому краю */
+            right: 0;
             background-color: var(--surface-color);
             min-width: 200px;
             box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
@@ -456,7 +105,6 @@
         .dropdown:hover .btn-success {
             background-color: var(--primary-dark);
         }
-
     </style>
 </head>
 <body>
